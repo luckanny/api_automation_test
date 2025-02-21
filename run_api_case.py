@@ -4,8 +4,7 @@ import config.globals as gls
 from api.case import Case
 from api.handle_api_request import RestApiRequest
 from api.handle_invoke_fuction import InvokeFunction
-from api.parse_cases import Case
-from util.allure_customize import customize_xml, remark_substep_result
+from common.allure_customize import customize_xml, remark_substep_result
 import allure
 
 # generate arbitrary parametrization at collection time
