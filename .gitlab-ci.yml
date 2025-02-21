@@ -1,0 +1,97 @@
+image: python:latest
+
+default:
+  tags:
+    - Refinitiv
+    - Linux
+    - Medium
+  before_script:
+    - if [ "$DEPLOY_ENVIRONMENT" == "prod" ]; then AWS_ACCOUNT_ID="237750539069"; fi
+
+variables:
+  FILE_TO_RUN:
+    value: "Component_Testing_Test_Cases.yaml"
+    options:
+      - "Component_Testing_Test_Cases.yaml"
+      - "Smoke_Testing_Test_Cases.yaml"
+    description: "test case file"
+  Environment_TO_Run:
+    value: "dev"
+    options:
+      - "dev"
+      - "qa"
+      - "e2e"
+      - "ppe"
+    description: "Test environment. The legal value: dev, qa, ppe and prod"
+  TF_ROOT: ${CI_PROJECT_DIR}
+  AWS_DEFAULT_REGION: "us-east-1"
+  AWS_ACCOUNT_ID: "960731312678"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+stages:
+  - install-dependence-package
+  - fetch-aws-credentials
+  - run-pytest-cases
+
+install-dependence-package:
+  stage: install-dependence-package
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "web"
+  script:
+    - echo "prepare environment"
+    - pip install -r requirements.txt
+    - pip list
+  before_script:
+    - python --version
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+
+fetch-aws-credentials:
+  stage: fetch-aws-credentials
+  image: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/vault:1.9.8
+  only:
+    variables:
+    - $CI_PIPELINE_SOURCE == "web"
+  script:
+    - apk add --update curl && rm -rf /var/cache/apk/*
+    - apk add --update jq && rm -rf /var/cache/apk/*
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=${CI_PROJECT_ROOT_NAMESPACE} jwt=$CI_JOB_JWT)"
+    - vault list gitlab/$CI_PROJECT_ROOT_NAMESPACE/aws/roles
+    - export AWS_CREDS="$(vault read -format=json gitlab/${CI_PROJECT_ROOT_NAMESPACE}/aws/creds/${AWS_ACCOUNT_ID}-a${CI_PROJECT_ROOT_NAMESPACE}-developer)"
+    - echo $AWS_CREDS
+    - export AWS_ACCESS_KEY_ID="$(echo ${AWS_CREDS} | jq -r '.data.access_key')"
+    - echo $AWS_ACCESS_KEY_ID
+    - export AWS_SESSION_TOKEN="$(echo ${AWS_CREDS} | jq -r '.data.security_token')"
+    - echo $AWS_SESSION_TOKEN
+    - export AWS_SECRET_ACCESS_KEY="$(echo ${AWS_CREDS} | jq -r '.data.secret_key')"
+    - echo $AWS_SECRET_ACCESS_KEY
+    - echo $PRIVATE_TOKEN
+    - 'curl --request PUT --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" "${GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/variables/AWS_ACCESS_KEY_ID" --form "masked=true" --form "value=${AWS_ACCESS_KEY_ID}"'
+    - 'curl --request PUT --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" "${GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/variables/AWS_SESSION_TOKEN" --form "masked=true" --form "value=${AWS_SESSION_TOKEN}"'
+    - 'curl --request PUT --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" "${GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/variables/AWS_SECRET_ACCESS_KEY" --form "masked=true" --form "value=${AWS_SECRET_ACCESS_KEY}"'
+
+execute-case:
+  stage: run-pytest-cases
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "web"
+  script:
+    - pip list
+    - echo ${CI_PROJECT_DIR}
+    - echo ${FILE_TO_RUN}
+    - echo ${Environment_TO_Run}
+    - python  start.py --env="$Environment_TO_Run" --file_filter=$FILE_TO_RUN
+    - ls ${CI_PROJECT_DIR}/report
+  before_script:
+    - python --version
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+

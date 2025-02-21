@@ -1,4 +1,4 @@
-import pytest
+
 class UserDefinedException(Exception):
 
     def __init__(self, message='', code=''):
@@ -15,6 +15,49 @@ class FileFormatException(UserDefinedException):
     pass
 
 
+class ReportFileException(UserDefinedException):
+    pass
+
+
+class ProjectNameException(UserDefinedException):
+    pass
+
+
+class TestrialException(UserDefinedException):
+    pass
+
+
+class YamlLoadException(UserDefinedException):
+    pass
+
+
+class JsonLoadException(UserDefinedException):
+    pass
+
+
+class FileNotFoundException(UserDefinedException):
+    pass
+
+
+class EnvVariablesException(UserDefinedException):
+    pass
+
+
+class GlsVariablesException(UserDefinedException):
+    pass
+
+
+class JSONParseException(UserDefinedException):
+    pass
+
+
+class SortTypeException(UserDefinedException):
+    pass
+
+
+class NoValidationTypeException(UserDefinedException):
+    pass
+
 def test_exception():
     result = UserDefinedException("error_information", "404")
     print(result)
@@ -26,4 +69,3 @@ def test_exception():
 #     print(result)
 #     print(type(result))
 #     # assert "404" in result
-

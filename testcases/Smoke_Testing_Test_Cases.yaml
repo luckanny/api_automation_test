@@ -1,0 +1,5 @@
+config:
+  name: "Smoke Testing Test Cases"
+
+suit:
+  - case_config_file: "postman/get data.yaml"

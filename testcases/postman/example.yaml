@@ -1,0 +1,28 @@
+config:
+  name: "Event API - query with valid eventId successfully"
+  section : "Event API"
+
+
+steps:
+  - name: "query with valid eventId"
+    test-type: "rest_api.single_request"
+    params:
+      method: "GET"
+      url: "${env:HOST}/api/event/${var:source_eventId}"
+      headers:
+        Authorization : "${env:TOKEN}"
+        Content-Type : "application/json"
+      validation-rules:
+        - rule-type: "api_response_status_code_equals"
+          value: 200
+        - rule-type: "api_response_body_json_field_equals"
+          value: [ "$.source","Boomi_CDF_Fork" ]
+        - rule-type: "api_response_body_json_field_equals"
+          value: [ "$.code","completed" ]
+        - rule-type: "api_response_body_json_field_equals"
+          value: [ "$.documentId","${var:document_id}" ]
+
+
+
+
+
